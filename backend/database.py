@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 # --- Supabase / PostgreSQL Connection ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 if not DATABASE_URL or "[YOUR-PASSWORD]" in DATABASE_URL:
     # Fallback to local SQLite if Supabase isn't configured
     logger.warning("Supabase DATABASE_URL not fully configured. Falling back to local SQLite.")
