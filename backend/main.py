@@ -80,8 +80,10 @@ ALLOWED_ORIGINS = [
     "http://localhost:8000",
 ]
 
-# (Optional: If on Vercel, the user should add their specific URL here)
-# ALLOWED_ORIGINS += ["https://saarthi-ai-delta.vercel.app"] 
+ALLOWED_ORIGINS += [
+    "https://saarthi-ai-sigma.vercel.app",
+    "https://saarthi-ai-sigma-git-main-shubham-buchwanis-projects.vercel.app"
+]
 
 app.add_middleware(
     CORSMiddleware,
