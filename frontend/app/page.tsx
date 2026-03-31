@@ -1,12 +1,12 @@
 "use client"
 import * as React from "react"
-import { useAuth } from "../lib/auth"
+import { useAuth, API_URL } from "../lib/auth"
 import { Sidebar } from "@/components/Sidebar"
 import { ChatWindow } from "@/components/ChatWindow"
 import { Message } from "@/types"
 import { useRouter } from "next/navigation"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
 
 export default function Home() {
   const { user, token, logout, loading } = useAuth()

@@ -117,8 +117,12 @@ async def signup(user_in: UserCreate, db_session: Session = Depends(db.get_db)):
         db_session.commit()
         db_session.refresh(new_user)
         return new_user
+    except HTTPException:
+        # Re-raise HTTPExceptions (like 400 'User already exists') without wrapping them in 500
+        raise
     except Exception as e:
         logger.error(f"Signup error: {e}", exc_info=True)
+        # Catch and report unexpected database/logic errors as 500
         raise HTTPException(status_code=500, detail=str(e))
 
 

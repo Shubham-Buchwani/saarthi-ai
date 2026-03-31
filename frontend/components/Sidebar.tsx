@@ -4,9 +4,9 @@ import React, { useEffect, useState } from "react"
 import { Button } from "./ui/button"
 import { Menu, Plus, MessageSquare, LogOut, User } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useAuth } from "@/lib/auth"
+import { useAuth, API_URL } from "@/lib/auth"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
 
 interface ChatInfo {
   id: string

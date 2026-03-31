@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { useAuth } from "../../lib/auth";
+import { useAuth, API_URL } from "../../lib/auth";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
