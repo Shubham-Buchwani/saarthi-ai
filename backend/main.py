@@ -79,6 +79,10 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:3001",
     "http://localhost:8000",
 ]
+
+# (Optional: If on Vercel, the user should add their specific URL here)
+# ALLOWED_ORIGINS += ["https://saarthi-ai-delta.vercel.app"] 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
