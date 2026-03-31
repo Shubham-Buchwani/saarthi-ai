@@ -1,0 +1,32 @@
+[
+  {
+    "chunk_id": "chunk_seed_0001",
+    "source_file": "gita.pdf",
+    "chapter": 2,
+    "verse_start": 47,
+    "verse_end": 47,
+    "raw_text": "Karmanye vadhikaraste ma phaleshu kadachana, ma karma phala hetur bhur ma te sango’stvikarmani.",
+    "shloka_sanskrit": "à¤•à¤°à¥à¤®à¤£à¥à¤¯à¥‡à¤µà¤¾à¤§à¤¿à¤•à¤¾à¤°à¤¸à¥à¤¤à¥‡ à¤®à¤¾ à¤«à¤²à¥‡à¤·à¥ à¤•à¤¦à¤¾à¤šà¤¨ | à¤®à¤¾ à¤•à¤°à¥à¤®à¤«à¤²à¤¹à¥‡à¤¤à¥à¤°à¥à¤à¥‚à¤°à¥à¤®à¤¾ à¤¤à¥‡ à¤¸à¤™à¥à¤—à¥‹â€™à¤¸à¥à¤¤à¥à¤µà¤•à¤°à¥à¤®à¤£à¤¿ || 47 ||",
+    "simple_summary": "You have a right to perform your prescribed duties, but you are not entitled to the fruits of your actions. Never consider yourself to be the cause of the results of your activities, nor be attached to inaction.",
+    "core_lesson": "Focus on your efforts, not on the outcome.",
+    "real_life_use": "When you are stressed about exam results or a promotion.",
+    "everyday_analogy": "A gardener plants a tree and waters it because he loves gardening, not just for the fruit.",
+    "themes": ["Duty", "Detachment", "Action"],
+    "emotions": ["Anxiety", "Stressor", "Confusion"]
+  },
+  {
+    "chunk_id": "chunk_seed_0002",
+    "source_file": "gita.pdf",
+    "chapter": 6,
+    "verse_start": 5,
+    "verse_end": 5,
+    "raw_text": "uddhared atmanatmanam natmanam avasadayet, atmaiva hy atmano bandhur atmaiva ripur atmanah",
+    "shloka_sanskrit": "à¤‰à¤¦à¥à¤§à¤°à¥‡à¤¦à¤¾à¤¤à¥à¤®à¤¨à¤¾à¤¤à¥à¤®à¤¾à¤¨à¤‚ à¤¨à¤¾à¤¤à¥à¤®à¤¾à¤¨à¤®à¤µà¤¸à¤¾à¤¦à¤¯à¥‡à¤¤à¥ | à¤†à¤¤à¥à¤®à¥ˆà¤µ à¤¹à¥à¤¯à¤¾à¤¤à¥à¤®à¤¨à¥‹ à¤¬à¤¨à¥à¤§à¥à¤°à¤¾à¤¤à¥à¤®à¥ˆà¤µ à¤°à¤¿à¤ªà¥à¤°à¤¾à¤¤à¥à¤®à¤¨: || 5 ||",
+    "simple_summary": "Elevate yourself through the power of your own mind, and do not degrade yourself. For the mind can be your greatest friend or your worst enemy.",
+    "core_lesson": "Your self-talk and thoughts determine your reality.",
+    "real_life_use": "When you are feeling low and self-critical.",
+    "everyday_analogy": "Your mind is like a wild horse; if trained, it carries you to your destination; if not, it throws you off.",
+    "themes": ["Self-control", "Mindset", "Empowerment"],
+    "emotions": ["Depression", "Self-doubt", "Hopelessness"]
+  }
+]

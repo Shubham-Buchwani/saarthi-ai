@@ -1,0 +1,28 @@
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
+frontend/.env.production
+
+# Python / Backend
+backend/.env
+backend/__pycache__/
+backend/*.pyc
+backend/.venv/
+.venv/
+venv/
+__pycache__/
+
+# IDEs and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Misc
+node_modules/
+uvicorn_log*.txt
+test_flow.py
+read_log.py
+test_insert.py
+run_backend.bat

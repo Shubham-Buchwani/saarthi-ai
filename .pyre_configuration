@@ -1,0 +1,14 @@
+{
+  "source_directories": [
+    "."
+  ],
+  "search_path": [
+    "D:/Saarthi AI/venv/Lib/site-packages"
+  ],
+  "exclude": [
+    "**/node_modules/**",
+    "**/.next/**"
+  ]
+}
+
+

@@ -1,0 +1,16 @@
+{
+  "include": [
+    "."
+  ],
+  "venvPath": "d:\\Saarthi AI",
+  "venv": "venv",
+  "pythonVersion": "3.10",
+  "analysis": {
+    "extraPaths": [
+      "."
+    ],
+    "typeCheckingMode": "basic"
+  }
+}
+
+
