@@ -80,14 +80,11 @@ ALLOWED_ORIGINS = [
     "http://localhost:8000",
 ]
 
-ALLOWED_ORIGINS += [
-    "https://saarthi-ai-sigma.vercel.app",
-    "https://saarthi-ai-sigma-git-main-shubham-buchwanis-projects.vercel.app"
-]
-
+# Whitelist Vercel app domains and local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=ALLOWED_ORIGINS + ["https://saarthi-ai-sigma.vercel.app"],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
