@@ -19,13 +19,14 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     try {
-      const formData = new FormData();
-      formData.append("username", username);
-      formData.append("password", password);
+      const params = new URLSearchParams();
+      params.append("username", username);
+      params.append("password", password);
 
       const resp = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params,
       });
 
       if (resp.ok) {

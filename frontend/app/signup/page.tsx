@@ -27,13 +27,14 @@ export default function SignupPage() {
       });
 
       if (resp.ok) {
-        const loginFormData = new FormData();
-        loginFormData.append("username", username);
-        loginFormData.append("password", password);
+        const loginParams = new URLSearchParams();
+        loginParams.append("username", username.toLowerCase());
+        loginParams.append("password", password);
 
         const loginResp = await fetch(`${API_URL}/api/auth/login`, {
           method: "POST",
-          body: loginFormData,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: loginParams,
         });
 
         if (loginResp.ok) {

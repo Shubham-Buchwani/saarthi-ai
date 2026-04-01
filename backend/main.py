@@ -101,7 +101,7 @@ async def signup(user_in: UserCreate, db_session: Session = Depends(db.get_db)):
     try:
         # Check if user exists
         db_user = db_session.query(db.User).filter(
-            (db.User.username == user_in.username) | (db.User.email == user_in.email)
+            (db.User.username == user_in.username.lower()) | (db.User.email == user_in.email.lower())
         ).first()
         if db_user:
             raise HTTPException(status_code=400, detail="Username or Email already registered")
@@ -109,8 +109,8 @@ async def signup(user_in: UserCreate, db_session: Session = Depends(db.get_db)):
         # Hash password and save
         hashed_pwd = auth.get_password_hash(user_in.password)
         new_user = db.User(
-            username=user_in.username,
-            email=user_in.email,
+            username=user_in.username.lower(),
+            email=user_in.email.lower(),
             hashed_password=hashed_pwd
         )
         db_session.add(new_user)
@@ -129,7 +129,7 @@ async def signup(user_in: UserCreate, db_session: Session = Depends(db.get_db)):
 @app.post("/api/auth/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db_session: Session = Depends(db.get_db)):
     """Log in and get a JWT access token."""
-    user = db_session.query(db.User).filter(db.User.username == form_data.username).first()
+    user = db_session.query(db.User).filter(db.User.username == form_data.username.lower()).first()
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

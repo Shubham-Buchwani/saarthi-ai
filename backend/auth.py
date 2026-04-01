@@ -13,14 +13,14 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "7b547909-3375-8120-4abf-bceb7237b244-
 ALGORITHM = os.environ.get("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # ─────────────────────────────────────────────────────
 # Password Hashing
 # ─────────────────────────────────────────────────────
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_context.verify(plain_password[:72], hashed_password)
 
 import logging
 logger = logging.getLogger(__name__)
@@ -29,6 +29,8 @@ def get_password_hash(password):
     if not password:
         logger.error("Attempted to hash an empty or None password.")
         raise ValueError("Password cannot be empty.")
+    # bcrypt has a 72-byte limit — truncate silently
+    password = password[:72]
     return pwd_context.hash(password)
 
 # ─────────────────────────────────────────────────────
