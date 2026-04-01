@@ -50,12 +50,21 @@ export function ChatWindow({
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700">
             <div className="h-16 w-16 mb-6 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center border border-amber-200 dark:border-amber-800">
-              <span className="text-3xl">🦚</span>
+              {isLoading ? <Loader2 className="h-7 w-7 animate-spin text-amber-600" /> : <span className="text-3xl">🦚</span>}
             </div>
-            <h2 className="text-2xl font-semibold mb-2">How can I guide you today?</h2>
-            <p className="text-muted-foreground max-w-md">
-              Share what's on your mind. I am here to listen and offer perspective from the wisdom of the Gita.
-            </p>
+            {isLoading ? (
+              <>
+                <h2 className="text-2xl font-semibold mb-2">Krishna is reflecting...</h2>
+                <p className="text-muted-foreground max-w-md">Seeking wisdom from the Gita for you...</p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-semibold mb-2">How can I guide you today?</h2>
+                <p className="text-muted-foreground max-w-md">
+                  Share what's on your mind. I am here to listen and offer perspective from the wisdom of the Gita.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <div className="max-w-3xl mx-auto w-full divide-y">

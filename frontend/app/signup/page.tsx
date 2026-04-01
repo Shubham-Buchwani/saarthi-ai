@@ -14,11 +14,13 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
     try {
       const resp = await fetch(`${API_URL}/api/auth/signup`, {
         method: "POST",
@@ -49,6 +51,8 @@ export default function SignupPage() {
       }
     } catch (err) {
       setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,8 +106,16 @@ export default function SignupPage() {
             {error && <p className="text-red-400 text-sm text-center">{error}</p>}
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full h-12 bg-[#b8860b] hover:bg-[#8b6508] text-white font-bold transition-all duration-300 shadow-lg shadow-[#b8860b]/20">
-              Create Account
+            <Button type="submit" disabled={loading} className="w-full h-12 bg-[#b8860b] hover:bg-[#8b6508] text-white font-bold transition-all duration-300 shadow-lg shadow-[#b8860b]/20 disabled:opacity-70">
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Creating Account...
+                </span>
+              ) : "Create Account"}
             </Button>
             <p className="text-sm text-gray-500 text-center">
               Already have an account?{" "}
