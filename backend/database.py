@@ -1,14 +1,25 @@
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
+from urllib.parse import quote_plus
 import datetime
 import os
 import logging
 
 logger = logging.getLogger(__name__)
 
+
 # --- Supabase / PostgreSQL Connection ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# If PASSWORD is set separately, build URL safely (handles @, & etc. in password)
+DB_PASSWORD = os.environ.get("DATABASE_PASSWORD")
+DB_HOST = os.environ.get("DATABASE_HOST")
+
+if DB_PASSWORD and DB_HOST:
+    safe_password = quote_plus(DB_PASSWORD)
+    DATABASE_URL = f"postgresql://postgres.kkhixcydwohuosriultw:{safe_password}@{DB_HOST}:6543/postgres"
+    logger.info("Built DATABASE_URL from individual env vars.")
 
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)

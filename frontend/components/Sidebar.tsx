@@ -17,16 +17,13 @@ interface ChatInfo {
 export function Sidebar({
   className,
   onNewChat,
-  onLogout,
   onChatSelect,
-  user
 }: {
   className?: string
   onNewChat: () => void
-  onLogout?: () => void
   onChatSelect?: (chatId: string) => void
-  user?: any
 }) {
+
   const { token } = useAuth()
   const [history, setHistory] = useState<ChatInfo[]>([])
 
@@ -92,31 +89,8 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* User Section */}
-      {user && (
-        <div className="p-4 border-t border-[#b8860b]/10 bg-[#0a0a0a]/50">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="h-8 w-8 rounded-full bg-[#b8860b]/20 flex items-center justify-center border border-[#b8860b]/40 shrink-0">
-                <User className="h-4 w-4 text-[#b8860b]" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold truncate text-[#b8860b]/90">{user.username}</span>
-                <span className="text-[10px] text-gray-500 truncate">{user.email}</span>
-              </div>
-            </div>
-            <Button 
-              onClick={onLogout}
-              variant="ghost" 
-              size="icon"
-              className="h-8 w-8 text-gray-500 hover:text-red-400 hover:bg-transparent"
-              title="Logout"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* User Section (Removed for Guest Mode) */}
+
 
       <div className="p-3 text-[10px] text-[#b8860b]/30 text-center font-serif italic">
         "Peace resides within."

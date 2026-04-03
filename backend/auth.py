@@ -14,7 +14,7 @@ ALGORITHM = os.environ.get("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 # ─────────────────────────────────────────────────────
 # Password Hashing
@@ -47,21 +47,32 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 # ─────────────────────────────────────────────────────
 # Dependency: Current User
 # ─────────────────────────────────────────────────────
-async def get_current_user(token: str = Depends(oauth2_scheme), db_session: Session = Depends(db.get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-        
-    user = db_session.query(db.User).filter(db.User.username == username).first()
-    if user is None:
-        raise credentials_exception
+async def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db_session: Session = Depends(db.get_db)):
+    # 1. Try to get user from token if it exists
+    if token:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            username: str = payload.get("sub")
+            if username:
+                user = db_session.query(db.User).filter(db.User.username == username).first()
+                if user:
+                    return user
+        except JWTError:
+            pass
+
+    # 2. Fallback to Guest User
+    guest_username = "guest_user"
+    user = db_session.query(db.User).filter(db.User.username == guest_username).first()
+    if not user:
+        # Create Guest User if it doesn't exist
+        user = db.User(
+            username=guest_username,
+            email="guest@saarthi.ai",
+            hashed_password=get_password_hash("guest_password") # Dummy password
+        )
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+    
     return user
+

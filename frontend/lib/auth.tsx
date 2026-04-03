@@ -28,40 +28,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("saarthi_token");
-    if (savedToken) {
-      fetchUser(savedToken);
-    } else {
-      setLoading(false);
-    }
+    // Automatically set a Guest state
+    const guestUser: User = {
+      id: 0,
+      username: "guest_user",
+      email: "guest@saarthi.ai"
+    };
+    setUser(guestUser);
+    setToken("guest_token");
+    setLoading(false);
   }, []);
 
   const fetchUser = async (authToken: string) => {
-    try {
-      const resp = await fetch(`${API_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      if (resp.ok) {
-        const userData = await resp.json();
-        setUser(userData);
-        setToken(authToken);
-      } else {
-        logout();
-      }
-    } catch (err) {
-      console.error("Auth fetch error:", err);
-      logout();
-    } finally {
-      setLoading(false);
-    }
+    // Fetching user is now a no-op as we use Guest state
+    setLoading(false);
   };
 
   const login = async (newToken: string) => {
-    localStorage.setItem("saarthi_token", newToken);
-    setToken(newToken);
-    await fetchUser(newToken);
     router.push("/");
   };
+
 
   const logout = () => {
     localStorage.removeItem("saarthi_token");

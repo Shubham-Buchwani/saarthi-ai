@@ -15,11 +15,13 @@ export default function Home() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [sessionId, setSessionId] = React.useState("")
 
-  React.useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login")
-    }
-  }, [user, loading, router])
+  // Auth checking is now disabled to allow Guest access.
+  // React.useEffect(() => {
+  //   if (!loading && !user) {
+  //     router.push("/login")
+  //   }
+  // }, [user, loading, router])
+
 
   React.useEffect(() => {
     // Generate a unique session ID on mount if not already set
@@ -113,7 +115,7 @@ export default function Home() {
     }
   }
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background text-center">
         <div className="space-y-4">
@@ -126,16 +128,16 @@ export default function Home() {
     )
   }
 
+
   return (
     <main className="flex h-screen w-full overflow-hidden bg-background font-sans text-foreground">
       {/* Desktop Sidebar */}
       <Sidebar 
         onNewChat={handleNewChat} 
-        onLogout={logout}
         onChatSelect={handleChatSelect}
-        user={user}
         className="hidden md:flex" 
       />
+
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
