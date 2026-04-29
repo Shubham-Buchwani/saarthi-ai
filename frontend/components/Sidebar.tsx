@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { Button } from "./ui/button"
-import { Menu, Plus, MessageSquare, LogOut, User } from "lucide-react"
+import { Menu, Plus, MessageSquare, LogOut, User, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth, API_URL } from "@/lib/auth"
 
@@ -18,10 +18,12 @@ export function Sidebar({
   className,
   onNewChat,
   onChatSelect,
+  onClose,
 }: {
   className?: string
   onNewChat: () => void
   onChatSelect?: (chatId: string) => void
+  onClose?: () => void
 }) {
 
   const { token } = useAuth()
@@ -53,6 +55,16 @@ export function Sidebar({
         <div className="font-serif font-bold text-[#b8860b] flex items-center gap-2">
           <span className="text-2xl">🦚</span> Saarthi AI
         </div>
+        {onClose && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="md:hidden text-[#b8860b]/60 hover:text-[#b8860b] hover:bg-[#b8860b]/10"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        )}
       </div>
       
       <div className="p-4">

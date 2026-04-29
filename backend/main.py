@@ -60,8 +60,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.requests import Request
+import json
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -151,20 +152,18 @@ async def read_users_me(current_user: db.User = Depends(auth.get_current_user)):
 # CHAT & PERSISTENCE ROUTES
 # ─────────────────────────────────────────────────────
 
-@app.post("/api/chat", response_model=ChatResponse)
+@app.post("/api/chat")
 async def chat(
     req: ChatRequest, 
     current_user: db.User = Depends(auth.get_current_user),
     db_session: Session = Depends(db.get_db)
 ):
     """
-    Main chat endpoint (Protected).
-    Saves conversation to database automatically.
+    Async streaming chat endpoint.
     """
-    # 1. Validate session/chat_id
+    # 1. Validate
     chat_id = req.session_id or str(uuid.uuid4())
     user_message = req.message.strip()
-
     if not user_message:
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
 
@@ -173,52 +172,53 @@ async def chat(
     if safe_response:
         session_mem.add_message(db_session, chat_id, "user", user_message, current_user.id)
         session_mem.add_message(db_session, chat_id, "assistant", safe_response, current_user.id)
-        return ChatResponse(reply=safe_response, sources=[], session_id=chat_id)
+        
+        async def safe_gen():
+            yield f"data: {json.dumps({'text': safe_response})}\n\n"
+            yield f"data: {json.dumps({'sources': [], 'session_id': chat_id})}\n\n"
+        return StreamingResponse(safe_gen(), media_type="text/event-stream")
 
-    # 3. Get history from DB
+    # 3. Get history (sync DB call)
     history_str = session_mem.format_history_for_prompt(db_session, chat_id)
 
-    # 4. Generate response
-    try:
-        chain = get_chain()
-        reply, source_chunks = chain.chat(
-            user_message=user_message,
-            session_id=chat_id,
-            conversation_history=history_str,
-        )
-    except Exception as e:
-        logger.error(f"Chain error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Something went wrong while consulting the wise one.")
+    async def chat_event_generator():
+        try:
+            chain = get_chain()
+            full_reply = ""
+            sources = []
+            
+            async for chunk in chain.chat_stream(
+                user_message=user_message,
+                session_id=chat_id,
+                conversation_history=history_str,
+                language=req.language
+            ):
+                if isinstance(chunk, dict):
+                    # Final metadata chunk
+                    sources = chunk.get("sources", [])
+                    full_reply = chunk.get("full_reply", "")
+                    yield f"data: {json.dumps({'sources': sources, 'session_id': chat_id})}\n\n"
+                else:
+                    # Text chunk
+                    yield f"data: {json.dumps({'text': chunk})}\n\n"
+            
+            # Post-stream persistence
+            if full_reply:
+                session_mem.add_message(db_session, chat_id, "user", user_message, current_user.id)
+                session_mem.add_message(db_session, chat_id, "assistant", full_reply, current_user.id)
+                
+                # Auto-title logic
+                session_obj = db_session.query(db.Chat).filter(db.Chat.id == chat_id).first()
+                if session_obj and session_obj.title == "New Conversation":
+                    title = user_message[:40] + ("..." if len(user_message) > 40 else "")
+                    session_obj.title = title
+                    db_session.commit()
+                    
+        except Exception as e:
+            logger.error(f"Streaming error: {e}", exc_info=True)
+            yield f"data: {json.dumps({'error': 'The connection to Krishna was interrupted.'})}\n\n"
 
-    # 5. Save to database (this guarantees get_or_create_chat has run and committed)
-    session_mem.add_message(db_session, chat_id, "user", user_message, current_user.id)
-    session_mem.add_message(db_session, chat_id, "assistant", reply, current_user.id)
-
-    # 6. Handle First Message Title (Auto-naming)
-    session_obj = db_session.query(db.Chat).filter(db.Chat.id == chat_id).first()
-    # If title is still default, update it using the first message
-    if session_obj and session_obj.title == "New Conversation":
-        # simple: take first 40 chars 
-        title = user_message[:40] + ("..." if len(user_message) > 40 else "")
-        session_obj.title = title
-        db_session.commit()
-
-    # 7. Format sources
-    sources = [
-        ShlokaSource(
-            chapter=c["chapter"],
-            verse_start=c.get("verse_start", 0),
-            verse_end=c.get("verse_end", 0),
-            source_file=c.get("source_file", ""),
-            core_lesson=c.get("core_lesson", "")
-        ) for c in source_chunks if c.get("chapter", 0) > 0
-    ]
-
-    return ChatResponse(
-        reply=reply, 
-        sources=sources, 
-        session_id=chat_id
-    )
+    return StreamingResponse(chat_event_generator(), media_type="text/event-stream")
 
 
 @app.get("/api/chats", response_model=List[ChatInfo])

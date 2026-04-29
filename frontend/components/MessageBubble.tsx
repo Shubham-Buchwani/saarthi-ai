@@ -14,7 +14,7 @@ export function MessageBubble({ message }: { message: Message }) {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "flex w-full gap-4 p-4 md:p-6",
+        "flex w-full gap-3 md:gap-4 p-4 md:p-6",
         isUser ? "bg-background" : "bg-muted/30"
       )}
     >

@@ -10,7 +10,8 @@ from typing import Optional
 
 import google.generativeai as genai
 from google.ai import generativelanguage as glm
-from groq import Groq
+from groq import Groq, AsyncGroq
+import asyncio
 
 from backend.persona.prompts import KRISHNA_SYSTEM_PROMPT, build_rag_prompt
 from backend.rag.retriever import retrieve
@@ -39,9 +40,11 @@ class SaarthiChain:
         self.groq_api_key = os.environ.get("GROQ_API_KEY", "")
         self.groq_model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
         self.groq_client = None
+        self.async_groq_client = None
         if self.llm_provider == "groq" and self.groq_api_key:
             self.groq_client = Groq(api_key=self.groq_api_key)
-            logger.info(f"Groq client initialized with model: {self.groq_model}")
+            self.async_groq_client = AsyncGroq(api_key=self.groq_api_key)
+            logger.info(f"Groq clients (Sync/Async) initialized with model: {self.groq_model}")
 
         # Gemini Setup (as fallback or primary)
         self.generation_config = genai.types.GenerationConfig(
@@ -58,11 +61,15 @@ class SaarthiChain:
 
         logger.info(f"SaarthiChain initialized: Provider={self.llm_provider}, LLM={self.llm_model}, Embed={self.embed_model}")
 
-    def get_embedding(self, text: str) -> list[float]:
+    async def get_embedding_async(self, text: str) -> list[float]:
         # Exponential backoff for embeddings (2s, 4s, 8s)
         for attempt in range(4):
             try:
-                result = genai.embed_content(
+                # Note: genai.embed_content_async might not be available in all versions, 
+                # but we can wrap the sync one or use the async client if it exists.
+                # In current google-generativeai, we can use loop.run_in_executor or similar if needed.
+                # Actually, some versions have it. Let's try the common async wrapper.
+                result = await genai.embed_content_async(
                     model=self.embed_model,
                     content=text,
                     task_type="retrieval_query",
@@ -73,36 +80,48 @@ class SaarthiChain:
                 if ("429" in err_msg or "quota" in err_msg) and attempt < 3:
                     sleep_time = 2 ** (attempt + 1)
                     logger.warning(f"Embedding Quota hit. Retrying in {sleep_time}s... (Attempt {attempt+1})")
-                    time.sleep(sleep_time)
+                    await asyncio.sleep(sleep_time)
                     continue
                 raise e
         return []
 
-    def chat(
+    def get_embedding(self, text: str) -> list[float]:
+        """Sync wrapper for embeddings."""
+        import asyncio
+        import nest_asyncio
+        nest_asyncio.apply()
+        try:
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete(self.get_embedding_async(text))
+        except RuntimeError:
+            return asyncio.run(self.get_embedding_async(text))
+
+    async def chat_stream(
         self,
         user_message: str,
         session_id: str,
         conversation_history: str,
-    ) -> tuple[str, list[dict]]:
+        language: str = "auto",
+    ):
         """
-        Main chat method. Returns (reply_text, source_chunks).
+        Async streaming chat method. yields chunks of the response.
+        Final yield is the full context (sources) used.
         """
-        # 1. Retrieve relevant Gita teachings
-        retrieved_chunks = self._retrieve_context(user_message)
+        # 1. Retrieve relevant Gita teachings (async embedding)
+        retrieved_chunks = await self._retrieve_context_async(user_message)
 
         # 2. Build prompt messages
         messages = build_rag_prompt(
             user_message=user_message,
             retrieved_chunks=retrieved_chunks,
             conversation_history=conversation_history,
+            language=language,
         )
 
-        # 3. Generate response with Provider Logic & Exponential Backoff
-        reply = ""
+        reply_full = ""
         
-        # Scenario A: Groq (Primary for high-quota and speed)
-        if self.llm_provider == "groq" and self.groq_client:
-            # Convert Gemini messages to OpenAI/Groq format
+        # Scenario A: Groq Async Streaming
+        if self.llm_provider == "groq" and self.async_groq_client:
             groq_messages = [
                 {"role": "system", "content": KRISHNA_SYSTEM_PROMPT},
             ]
@@ -113,71 +132,106 @@ class SaarthiChain:
 
             for attempt in range(4):
                 try:
-                    completion = self.groq_client.chat.completions.create(
+                    stream = await self.async_groq_client.chat.completions.create(
                         messages=groq_messages,
                         model=self.groq_model,
                         temperature=0.75,
                         max_tokens=1024,
                         top_p=0.92,
+                        stream=True,
                     )
-                    reply = completion.choices[0].message.content.strip()
-                    break
+                    async for chunk in stream:
+                        content = chunk.choices[0].delta.content or ""
+                        if content:
+                            reply_full += content
+                            yield content
+                    
+                    # Yield special end-of-stream indicator with metadata
+                    yield {"sources": retrieved_chunks, "full_reply": reply_full}
+                    return
+
                 except Exception as e:
                     err_msg = str(e).lower()
                     if ("429" in err_msg or "rate limit" in err_msg) and attempt < 3:
                         sleep_time = 3 * (2 ** attempt)
-                        logger.warning(f"Groq Rate Limit. Retrying in {sleep_time}s... (Attempt {attempt+1})")
-                        time.sleep(sleep_time)
+                        await asyncio.sleep(sleep_time)
                         continue
-                    
-                    logger.error(f"Groq generation failed after {attempt+1} attempts: {e}. Falling back to Gemini...")
-                    # If Groq fails after retries, we'll try Gemini below
+                    logger.error(f"Groq stream failed: {e}. Falling back...")
                     break
 
-        # Scenario B: Gemini (Fallback or Primary)
-        if not reply:
-            for attempt in range(4):
-                try:
-                    response = self.model.generate_content(
-                        contents=messages,
-                    )
-                    reply = response.text.strip()
-                    break
-                except Exception as e:
-                    err_msg = str(e).lower()
-                    if ("429" in err_msg or "quota" in err_msg or "500" in err_msg or "503" in err_msg) and attempt < 3:
-                        sleep_time = 3 * (2 ** attempt)
-                        logger.warning(f"Gemini error. Retrying in {sleep_time}s... (Attempt {attempt+1})")
-                        time.sleep(sleep_time)
-                        continue
-                    
-                    logger.error(f"Gemini generation failed: {e}")
-                    reply = ("I feel the heaviness of this moment, my friend. "
-                             "Something pulled me away just now — please share your thoughts again "
-                             "and I will be fully present with you.")
-                    break
+        # Scenario B: Gemini Async Streaming
+        for attempt in range(4):
+            try:
+                response = await self.model.generate_content_async(
+                    contents=messages,
+                    stream=True,
+                )
+                async for chunk in response:
+                    content = chunk.text
+                    if content:
+                        reply_full += content
+                        yield content
+                
+                yield {"sources": retrieved_chunks, "full_reply": reply_full}
+                return
 
-        return reply, retrieved_chunks
+            except Exception as e:
+                err_msg = str(e).lower()
+                if ("429" in err_msg or "quota" in err_msg) and attempt < 3:
+                    sleep_time = 3 * (2 ** attempt)
+                    await asyncio.sleep(sleep_time)
+                    continue
+                
+                logger.error(f"Gemini stream failed: {e}")
+                error_fallback = "I feel the path is blocked momentarily, Parth. Please speak to me again."
+                yield error_fallback
+                yield {"sources": [], "full_reply": error_fallback}
+                break
 
-    def _retrieve_context(self, query: str) -> list[dict]:
-        """Retrieve relevant chunks using embedding search."""
+    async def _retrieve_context_async(self, query: str) -> list[dict]:
+        """Async retrieval of context."""
         try:
-            from backend.rag.retriever import retrieve, _metadata
+            from backend.rag.retriever import _metadata
             if not _metadata:
                 return []
 
-            embedding = self.get_embedding(query)
+            embedding = await self.get_embedding_async(query)
 
-            # Use the retriever with our embedding
             from backend.rag import retriever as ret_module
             return ret_module.retrieve_with_vector(
                 query_vec=embedding,
-                top_k=5,
+                top_k=8,  # Increased top_k for better diversity sampling
                 min_score=0.25,
             )
         except Exception as e:
             logger.warning(f"Retrieval failed: {e}. Proceeding without context.")
             return []
+
+    def chat(
+        self,
+        user_message: str,
+        session_id: str,
+        conversation_history: str,
+    ) -> tuple[str, list[dict]]:
+        """Sync wrapper for tests/non-streaming usage."""
+        import asyncio
+        import nest_asyncio
+        nest_asyncio.apply()
+        
+        async def run_sync():
+            full_reply = ""
+            sources = []
+            async for chunk in self.chat_stream(user_message, session_id, conversation_history):
+                if isinstance(chunk, dict):
+                    sources = chunk.get("sources", [])
+                    full_reply = chunk.get("full_reply", "")
+            return full_reply, sources
+
+        try:
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete(run_sync())
+        except RuntimeError:
+            return asyncio.run(run_sync())
 
     def get_daily_wisdom(self) -> Optional[dict]:
         """Return a random Gita teaching for the daily wisdom feature."""

@@ -154,24 +154,45 @@ def retrieve(
                 filtered.append((idx, score))
         results = sorted(filtered, key=lambda x: x[1], reverse=True)
 
-    # Return top-3 enriched chunks
+    # Return top-3 enriched chunks with diversity jitter
     from typing import cast
+    import random
+    
+    # We take more candidates than needed (top_k) to allow for jitter
+    candidates = sorted(results, key=lambda x: x[1], reverse=True)[:max(top_k, 12)]
+    
     top_chunks = []
     seen_chapters = set()
-    for idx, score in cast(list[tuple[int, float]], results[:top_k]):
-        chunk = _metadata[idx].copy()
-
-        chunk["_score"] = score
-
-        # Prefer diverse chapters in top-3
-        ch = chunk.get("chapter", 0)
-        if ch in seen_chapters and len(top_chunks) >= 2:
-            continue
-        seen_chapters.add(ch)
-        top_chunks.append(chunk)
-
-        if len(top_chunks) >= 3:
-            break
+    
+    # Randomly shuffle a bit within the high-score group to avoid repetition
+    # We'll take the very top result always (if score is high enough), then jitter the rest
+    if candidates:
+        # Keep the absolute best match
+        idx_0, score_0 = candidates[0]
+        chunk_0 = _metadata[idx_0].copy()
+        chunk_0["_score"] = score_0
+        top_chunks.append(chunk_0)
+        seen_chapters.add(chunk_0.get("chapter", 0))
+        
+        # Jitter the remaining slots
+        remaining = candidates[1:]
+        random.shuffle(remaining)
+        
+        for idx, score in remaining:
+            if len(top_chunks) >= 3:
+                break
+                
+            chunk = _metadata[idx].copy()
+            chunk["_score"] = score
+            ch = chunk.get("chapter", 0)
+            
+            # Prefer different chapters
+            if ch in seen_chapters and len(top_chunks) < 2:
+                # If we already have this chapter and only have 1 chunk, skip to find a new chapter
+                continue
+            
+            seen_chapters.add(ch)
+            top_chunks.append(chunk)
 
     return top_chunks
 
@@ -202,24 +223,44 @@ def retrieve_with_vector(
         results = _numpy_search(query_vec, top_k)
         results = [(idx, score) for idx, score in results if score >= min_score]
 
-    if not results:
-        import random
-        return random.sample(_metadata, min(3, len(_metadata)))
-
+    # Return top-3 enriched chunks with diversity jitter
+    import random
+    
+    # We take more candidates than needed to allow for jitter
+    candidates = sorted(results, key=lambda x: x[1], reverse=True)[:max(top_k, 12)]
+    
     top_chunks = []
-    seen_chapters: set[int] = set()
-    for idx, score in sorted(results, key=lambda x: x[1], reverse=True):
-        if idx >= len(_metadata):
-            continue
-        chunk = _metadata[idx].copy()
-        chunk["_score"] = score
-        ch = chunk.get("chapter", 0)
-        if ch in seen_chapters and len(top_chunks) >= 2:
-            continue
-        seen_chapters.add(ch)
-        top_chunks.append(chunk)
-        if len(top_chunks) >= 3:
-            break
+    seen_chapters = set()
+    
+    if candidates:
+        # Keep the absolute best match
+        idx_0, score_0 = candidates[0]
+        if idx_0 < len(_metadata):
+            chunk_0 = _metadata[idx_0].copy()
+            chunk_0["_score"] = score_0
+            top_chunks.append(chunk_0)
+            seen_chapters.add(chunk_0.get("chapter", 0))
+        
+        # Jitter the remaining slots
+        remaining = candidates[1:]
+        random.shuffle(remaining)
+        
+        for idx, score in remaining:
+            if len(top_chunks) >= 3:
+                break
+            if idx >= len(_metadata):
+                continue
+                
+            chunk = _metadata[idx].copy()
+            chunk["_score"] = score
+            ch = chunk.get("chapter", 0)
+            
+            # Prefer different chapters
+            if ch in seen_chapters and len(top_chunks) < 2:
+                continue
+            
+            seen_chapters.add(ch)
+            top_chunks.append(chunk)
 
     return top_chunks
 
