@@ -21,7 +21,6 @@ _index = None
 _metadata: list[dict] = []
 _embeddings_cache: dict[str, list[float]] = {}
 
-
 def load_index() -> None:
     """Load the FAISS index and metadata into memory. Call once at startup."""
     global _index, _metadata
@@ -50,7 +49,6 @@ def load_index() -> None:
 
     logger.info(f"Metadata loaded: {len(_metadata)} chunks")
 
-
 def get_embedding(text: str, embed_client, model: str) -> list[float]:
     """Get embedding for a text string, with simple caching."""
     if text in _embeddings_cache:
@@ -64,13 +62,11 @@ def get_embedding(text: str, embed_client, model: str) -> list[float]:
     _embeddings_cache[text] = embedding
     return embedding
 
-
 def _numpy_search(query_vec: list[float], top_k: int) -> list[tuple[int, float]]:
     """Fallback search using numpy cosine similarity when FAISS isn't available."""
     if not _metadata:
         return []
 
-    # Load stored embeddings if available
     emb_path = DATA_DIR / "embeddings.npy"
     if not emb_path.exists():
         logger.warning("embeddings.npy not found. Returning first chunks as fallback.")
@@ -79,7 +75,6 @@ def _numpy_search(query_vec: list[float], top_k: int) -> list[tuple[int, float]]
     stored = np.load(str(emb_path)).astype("float32")
     q = np.array(query_vec, dtype="float32")
 
-    # Cosine similarity
     norms = np.linalg.norm(stored, axis=1, keepdims=True)
     norms[norms == 0] = 1e-8
     stored_normalized = stored / norms
@@ -88,7 +83,6 @@ def _numpy_search(query_vec: list[float], top_k: int) -> list[tuple[int, float]]
 
     top_indices = np.argsort(scores)[::-1][:top_k]
     return [(int(idx), float(scores[idx])) for idx in top_indices]
-
 
 def retrieve(
     query: str,
@@ -116,10 +110,7 @@ def retrieve(
         logger.warning("No metadata loaded. Returning empty results.")
         return []
 
-    # Get query embedding
     query_vec = get_embedding(query, embed_client, embed_model)
-
-    # Search
     results: list[tuple[int, float]] = []
     if _index is not None:
 
@@ -137,12 +128,10 @@ def retrieve(
         results = [(idx, score) for idx, score in results if score >= min_score]
 
     if not results:
-        # Return a few random chunks as fallback
         import random
         fallback = random.sample(_metadata, min(3, len(_metadata)))
         return fallback
 
-    # Apply emotion filter if provided
     if emotion_filter:
         filtered = []
         for idx, score in results:
@@ -154,48 +143,39 @@ def retrieve(
                 filtered.append((idx, score))
         results = sorted(filtered, key=lambda x: x[1], reverse=True)
 
-    # Return top-3 enriched chunks with diversity jitter
     from typing import cast
     import random
-    
-    # We take more candidates than needed (top_k) to allow for jitter
+
     candidates = sorted(results, key=lambda x: x[1], reverse=True)[:max(top_k, 12)]
-    
+
     top_chunks = []
     seen_chapters = set()
-    
-    # Randomly shuffle a bit within the high-score group to avoid repetition
-    # We'll take the very top result always (if score is high enough), then jitter the rest
+
     if candidates:
-        # Keep the absolute best match
         idx_0, score_0 = candidates[0]
         chunk_0 = _metadata[idx_0].copy()
         chunk_0["_score"] = score_0
         top_chunks.append(chunk_0)
         seen_chapters.add(chunk_0.get("chapter", 0))
-        
-        # Jitter the remaining slots
+
         remaining = candidates[1:]
         random.shuffle(remaining)
-        
+
         for idx, score in remaining:
             if len(top_chunks) >= 3:
                 break
-                
+
             chunk = _metadata[idx].copy()
             chunk["_score"] = score
             ch = chunk.get("chapter", 0)
-            
-            # Prefer different chapters
+
             if ch in seen_chapters and len(top_chunks) < 2:
-                # If we already have this chapter and only have 1 chunk, skip to find a new chapter
                 continue
-            
+
             seen_chapters.add(ch)
             top_chunks.append(chunk)
 
     return top_chunks
-
 
 def retrieve_with_vector(
     query_vec: list[float],
@@ -223,47 +203,40 @@ def retrieve_with_vector(
         results = _numpy_search(query_vec, top_k)
         results = [(idx, score) for idx, score in results if score >= min_score]
 
-    # Return top-3 enriched chunks with diversity jitter
     import random
-    
-    # We take more candidates than needed to allow for jitter
     candidates = sorted(results, key=lambda x: x[1], reverse=True)[:max(top_k, 12)]
-    
+
     top_chunks = []
     seen_chapters = set()
-    
+
     if candidates:
-        # Keep the absolute best match
         idx_0, score_0 = candidates[0]
         if idx_0 < len(_metadata):
             chunk_0 = _metadata[idx_0].copy()
             chunk_0["_score"] = score_0
             top_chunks.append(chunk_0)
             seen_chapters.add(chunk_0.get("chapter", 0))
-        
-        # Jitter the remaining slots
+
         remaining = candidates[1:]
         random.shuffle(remaining)
-        
+
         for idx, score in remaining:
             if len(top_chunks) >= 3:
                 break
             if idx >= len(_metadata):
                 continue
-                
+
             chunk = _metadata[idx].copy()
             chunk["_score"] = score
             ch = chunk.get("chapter", 0)
-            
-            # Prefer different chapters
+
             if ch in seen_chapters and len(top_chunks) < 2:
                 continue
-            
+
             seen_chapters.add(ch)
             top_chunks.append(chunk)
 
     return top_chunks
-
 
 def get_random_chunk_by_theme(theme: str) -> Optional[dict]:
     """Get a random chunk matching a theme — used for daily wisdom."""

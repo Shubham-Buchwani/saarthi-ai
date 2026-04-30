@@ -8,7 +8,6 @@ import os
 from sqlalchemy.orm import Session
 from backend import database as db
 
-# Configuration — loaded from environment in production
 SECRET_KEY = os.environ.get("SECRET_KEY", "7b547909-3375-8120-4abf-bceb7237b244-saarthi")
 ALGORITHM = os.environ.get("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
@@ -16,9 +15,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
-# ─────────────────────────────────────────────────────
-# Password Hashing
-# ─────────────────────────────────────────────────────
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -31,9 +27,6 @@ def get_password_hash(password):
         raise ValueError("Password cannot be empty.")
     return pwd_context.hash(password)
 
-# ─────────────────────────────────────────────────────
-# JWT Token Logic
-# ─────────────────────────────────────────────────────
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
@@ -44,11 +37,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-# ─────────────────────────────────────────────────────
-# Dependency: Current User
-# ─────────────────────────────────────────────────────
 async def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db_session: Session = Depends(db.get_db)):
-    # 1. Try to get user from token if it exists
     if token:
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -60,11 +49,9 @@ async def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db_ses
         except JWTError:
             pass
 
-    # 2. Fallback to Guest User
     guest_username = "guest_user"
     user = db_session.query(db.User).filter(db.User.username == guest_username).first()
     if not user:
-        # Create Guest User if it doesn't exist
         user = db.User(
             username=guest_username,
             email="guest@saarthi.ai",
@@ -73,6 +60,6 @@ async def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db_ses
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
-    
+
     return user
 

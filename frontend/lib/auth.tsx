@@ -28,7 +28,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
 
   useEffect(() => {
-    // Automatically set a Guest state
     const guestUser: User = {
       id: 0,
       username: "guest_user",
@@ -40,14 +39,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const fetchUser = async (authToken: string) => {
-    // Fetching user is now a no-op as we use Guest state
     setLoading(false);
   };
 
   const login = async (newToken: string) => {
     router.push("/");
   };
-
 
   const logout = () => {
     localStorage.removeItem("saarthi_token");

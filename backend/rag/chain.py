@@ -36,7 +36,6 @@ class SaarthiChain:
         self.llm_model = os.environ.get("GEMINI_MODEL", "models/gemini-2.5-flash")
         self.embed_model = os.environ.get("EMBED_MODEL", "models/text-embedding-004")
 
-        # Groq Setup
         self.groq_api_key = os.environ.get("GROQ_API_KEY", "")
         self.groq_model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
         self.groq_client = None
@@ -46,7 +45,6 @@ class SaarthiChain:
             self.async_groq_client = AsyncGroq(api_key=self.groq_api_key)
             logger.info(f"Groq clients (Sync/Async) initialized with model: {self.groq_model}")
 
-        # Gemini Setup (as fallback or primary)
         self.generation_config = genai.types.GenerationConfig(
             temperature=0.75,
             top_p=0.92,
@@ -62,13 +60,8 @@ class SaarthiChain:
         logger.info(f"SaarthiChain initialized: Provider={self.llm_provider}, LLM={self.llm_model}, Embed={self.embed_model}")
 
     async def get_embedding_async(self, text: str) -> list[float]:
-        # Exponential backoff for embeddings (2s, 4s, 8s)
         for attempt in range(4):
             try:
-                # Note: genai.embed_content_async might not be available in all versions, 
-                # but we can wrap the sync one or use the async client if it exists.
-                # In current google-generativeai, we can use loop.run_in_executor or similar if needed.
-                # Actually, some versions have it. Let's try the common async wrapper.
                 result = await genai.embed_content_async(
                     model=self.embed_model,
                     content=text,
@@ -103,14 +96,8 @@ class SaarthiChain:
         conversation_history: str,
         language: str = "auto",
     ):
-        """
-        Async streaming chat method. yields chunks of the response.
-        Final yield is the full context (sources) used.
-        """
-        # 1. Retrieve relevant Gita teachings (async embedding)
         retrieved_chunks = await self._retrieve_context_async(user_message)
 
-        # 2. Build prompt messages
         messages = build_rag_prompt(
             user_message=user_message,
             retrieved_chunks=retrieved_chunks,
@@ -120,7 +107,6 @@ class SaarthiChain:
 
         reply_full = ""
         
-        # Scenario A: Groq Async Streaming
         if self.llm_provider == "groq" and self.async_groq_client:
             groq_messages = [
                 {"role": "system", "content": KRISHNA_SYSTEM_PROMPT},
@@ -146,7 +132,6 @@ class SaarthiChain:
                             reply_full += content
                             yield content
                     
-                    # Yield special end-of-stream indicator with metadata
                     yield {"sources": retrieved_chunks, "full_reply": reply_full}
                     return
 
@@ -159,7 +144,6 @@ class SaarthiChain:
                     logger.error(f"Groq stream failed: {e}. Falling back...")
                     break
 
-        # Scenario B: Gemini Async Streaming
         for attempt in range(4):
             try:
                 response = await self.model.generate_content_async(
@@ -200,7 +184,7 @@ class SaarthiChain:
             from backend.rag import retriever as ret_module
             return ret_module.retrieve_with_vector(
                 query_vec=embedding,
-                top_k=8,  # Increased top_k for better diversity sampling
+                top_k=8,
                 min_score=0.25,
             )
         except Exception as e:
@@ -240,14 +224,12 @@ class SaarthiChain:
         if not _metadata:
             return None
 
-        # Pick from action/detachment/duty themes for daily wisdom
         themes = ["duty", "action", "detachment", "equanimity", "self-knowledge"]
         theme = random.choice(themes)
 
         matching = [c for c in _metadata if theme in c.get("themes", [])]
         chunk = random.choice(matching) if matching else random.choice(_metadata)
 
-        # Use the centralized DAILY_WISDOM_PROMPT from persona.prompts
         from backend.persona.prompts import DAILY_WISDOM_PROMPT
         
         prompt = f"""{DAILY_WISDOM_PROMPT}
@@ -277,7 +259,6 @@ Analogy: {chunk.get('everyday_analogy', '')}
         }
 
 
-# Singleton instance (initialized at startup)
 _chain: Optional[SaarthiChain] = None
 
 

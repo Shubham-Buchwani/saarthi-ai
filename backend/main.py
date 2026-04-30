@@ -36,11 +36,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# (Imports moved down)
-
-# ─────────────────────────────────────────────────────
-# Startup / Shutdown
-# ─────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load FAISS index and initialise database at startup."""
@@ -51,7 +46,6 @@ async def lifespan(app: FastAPI):
     logger.info("✅ Saarthi AI is ready.")
     yield
     logger.info("👋 Saarthi AI shutting down.")
-
 
 app = FastAPI(
     title="Saarthi AI",
@@ -72,7 +66,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal server error connecting to wisdom source."},
     )
 
-# CORS
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -81,7 +74,6 @@ ALLOWED_ORIGINS = [
     "http://localhost:8000",
 ]
 
-# Whitelist Vercel app domains and local development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS + ["https://saarthi-ai-sigma.vercel.app"],
@@ -91,23 +83,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ─────────────────────────────────────────────────────
-# AUTHENTICATION ROUTES
-# ─────────────────────────────────────────────────────
-
 @app.post("/api/auth/signup", response_model=UserResponse)
 async def signup(user_in: UserCreate, db_session: Session = Depends(db.get_db)):
     """Create a new user account."""
     try:
-        # Check if user exists
         db_user = db_session.query(db.User).filter(
             (db.User.username == user_in.username.lower()) | (db.User.email == user_in.email.lower())
         ).first()
         if db_user:
             raise HTTPException(status_code=400, detail="Username or Email already registered")
-        
-        # Hash password and save
+
         hashed_pwd = auth.get_password_hash(user_in.password)
         new_user = db.User(
             username=user_in.username.lower(),
@@ -119,13 +104,10 @@ async def signup(user_in: UserCreate, db_session: Session = Depends(db.get_db)):
         db_session.refresh(new_user)
         return new_user
     except HTTPException:
-        # Re-raise HTTPExceptions (like 400 'User already exists') without wrapping them in 500
         raise
     except Exception as e:
         logger.error(f"Signup error: {e}", exc_info=True)
-        # Catch and report unexpected database/logic errors as 500
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.post("/api/auth/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db_session: Session = Depends(db.get_db)):
@@ -137,20 +119,14 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db_session: Se
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     access_token = auth.create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
-
 
 @app.get("/api/auth/me", response_model=UserResponse)
 async def read_users_me(current_user: db.User = Depends(auth.get_current_user)):
     """Get profile of the currently logged-in user."""
     return current_user
-
-
-# ─────────────────────────────────────────────────────
-# CHAT & PERSISTENCE ROUTES
-# ─────────────────────────────────────────────────────
 
 @app.post("/api/chat")
 async def chat(
@@ -161,24 +137,21 @@ async def chat(
     """
     Async streaming chat endpoint.
     """
-    # 1. Validate
     chat_id = req.session_id or str(uuid.uuid4())
     user_message = req.message.strip()
     if not user_message:
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
 
-    # 2. Safety filter
     safe_response = get_safe_response(user_message)
     if safe_response:
         session_mem.add_message(db_session, chat_id, "user", user_message, current_user.id)
         session_mem.add_message(db_session, chat_id, "assistant", safe_response, current_user.id)
-        
+
         async def safe_gen():
             yield f"data: {json.dumps({'text': safe_response})}\n\n"
             yield f"data: {json.dumps({'sources': [], 'session_id': chat_id})}\n\n"
         return StreamingResponse(safe_gen(), media_type="text/event-stream")
 
-    # 3. Get history (sync DB call)
     history_str = session_mem.format_history_for_prompt(db_session, chat_id)
 
     async def chat_event_generator():
@@ -186,7 +159,7 @@ async def chat(
             chain = get_chain()
             full_reply = ""
             sources = []
-            
+
             async for chunk in chain.chat_stream(
                 user_message=user_message,
                 session_id=chat_id,
@@ -194,32 +167,27 @@ async def chat(
                 language=req.language
             ):
                 if isinstance(chunk, dict):
-                    # Final metadata chunk
                     sources = chunk.get("sources", [])
                     full_reply = chunk.get("full_reply", "")
                     yield f"data: {json.dumps({'sources': sources, 'session_id': chat_id})}\n\n"
                 else:
-                    # Text chunk
                     yield f"data: {json.dumps({'text': chunk})}\n\n"
-            
-            # Post-stream persistence
+
             if full_reply:
                 session_mem.add_message(db_session, chat_id, "user", user_message, current_user.id)
                 session_mem.add_message(db_session, chat_id, "assistant", full_reply, current_user.id)
-                
-                # Auto-title logic
+
                 session_obj = db_session.query(db.Chat).filter(db.Chat.id == chat_id).first()
                 if session_obj and session_obj.title == "New Conversation":
                     title = user_message[:40] + ("..." if len(user_message) > 40 else "")
                     session_obj.title = title
                     db_session.commit()
-                    
+
         except Exception as e:
             logger.error(f"Streaming error: {e}", exc_info=True)
             yield f"data: {json.dumps({'error': 'The connection to Krishna was interrupted.'})}\n\n"
 
     return StreamingResponse(chat_event_generator(), media_type="text/event-stream")
-
 
 @app.get("/api/chats", response_model=List[ChatInfo])
 async def list_chats(
@@ -229,7 +197,6 @@ async def list_chats(
     """Retrieve all conversations for the current user."""
     return session_mem.get_user_chats(db_session, current_user.id)
 
-
 @app.get("/api/chats/{chat_id}", response_model=List[MessageInfo])
 async def get_chat_messages(
     chat_id: str,
@@ -238,16 +205,10 @@ async def get_chat_messages(
 ):
     """Retrieve full message history of a specific conversation."""
     messages = session_mem.get_chat_history(db_session, chat_id)
-    # Security: Ensure chat belongs to current user
     chat = db_session.query(db.Chat).filter(db.Chat.id == chat_id, db.Chat.user_id == current_user.id).first()
     if not chat:
         raise HTTPException(status_code=403, detail="Not authorized to view this chat.")
     return messages
-
-
-# ─────────────────────────────────────────────────────
-# GENERAL ROUTES
-# ─────────────────────────────────────────────────────
 
 @app.get("/")
 async def root():

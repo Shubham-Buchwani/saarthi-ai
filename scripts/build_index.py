@@ -17,7 +17,6 @@ load_dotenv(env_path)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-
 def main():
     api_key = os.environ.get("GOOGLE_API_KEY", "")
     if not api_key:
@@ -27,7 +26,7 @@ def main():
     import google.generativeai as genai
     import fitz
     from PIL import Image
-    
+
     genai.configure(api_key=api_key)
 
     embed_model = os.environ.get("EMBED_MODEL", "models/text-embedding-004")
@@ -47,16 +46,15 @@ def main():
 
     pdf_path = pdf_files[0]
     logger.info(f"📖 Processing: {pdf_path.name}")
-    
+
     doc = fitz.open(str(pdf_path))
     total_pages = len(doc)
     logger.info(f"  ✓ PDF has {total_pages} pages.")
 
-    # Check if PDF has text
     has_text = any(doc[i].get_text("text").strip() for i in range(min(10, total_pages)))
 
     chunks = []
-    
+
     if has_text:
         from backend.rag.ingest import extract_all_pdfs, chunk_pages
         logger.info("✂️  PDF contains text. Chunking normally...")
@@ -75,7 +73,6 @@ def main():
     from backend.rag.ingest import save_metadata
     save_metadata(chunks, metadata_path)
 
-    # ── Embeddings
     logger.info("🔢 Generating embeddings...")
     embeddings = []
     for i, chunk in enumerate(chunks):
@@ -98,7 +95,6 @@ def main():
     np.save(str(embeddings_path), embeddings_arr)
     logger.info(f"  ✓ Embeddings saved: {embeddings_arr.shape}")
 
-    # ── FAISS Index
     logger.info("🗂️  Building FAISS index...")
     try:
         import faiss
@@ -113,16 +109,15 @@ def main():
 
     logger.info("✅ Index build complete!")
 
-
 def _vision_extraction_pass(doc, source_file, model_name, genai) -> list[dict]:
     import json, re, time
     from PIL import Image
     import fitz
-    
+
     model = genai.GenerativeModel(model_name=model_name)
     chunks = []
     total = len(doc)
-    
+
     prompt = """You are extracting wisdom from a scanned page of the Bhagavad Gita.
 Analyze this image. If it contains meaningful teachings, shlokas, or commentary, extract it and return a valid JSON object.
 If the page is blank, a cover page, a table of contents, or contains no actionable teachings, return exactly this JSON: {"empty": true}
@@ -139,27 +134,26 @@ Return ONLY valid JSON with these keys:
 - "emotions": Array of 2-4 emotions this addresses (e.g., ["anxiety", "fear"])."""
 
     logger.info(f"Starting vision pass on {total} pages. This takes ~1 second per page...")
-    
+
     for i in range(total):
-        # Limit extraction to first 30 pages just so we don't hit hard rate limits and take forever
         if i >= 30:
             logger.info("  (Limiting vision extraction to first 30 pages for demonstration speed)")
             break
-            
+
         logger.info(f"  Processing page {i+1}/{total}...")
-        
+
         success = False
         for attempt in range(3):
             try:
                 pix = doc[i].get_pixmap(matrix=fitz.Matrix(1.5, 1.5))
                 img_data = pix.tobytes("jpeg")
                 img = Image.open(io.BytesIO(img_data))
-                
+
                 response = model.generate_content([prompt, img])
                 text = response.text.strip()
                 text = re.sub(r'^```(?:json)?\s*', '', text, flags=re.MULTILINE)
                 text = re.sub(r'\s*```$', '', text, flags=re.MULTILINE)
-                
+
                 data = json.loads(text)
                 if not data.get("empty"):
                     chunks.append({
@@ -182,14 +176,13 @@ Return ONLY valid JSON with these keys:
             except Exception as e:
                 logger.warning(f"  Vision extraction failed for page {i+1} (Attempt {attempt+1}): {e}")
                 time.sleep(10 * (attempt + 1))
-        
+
         if not success:
             logger.error(f"  Skipping page {i+1} after 3 failed attempts.")
-            
-        time.sleep(5)  # 12 requests per minute to stay under 15 RPM limit
-        
-    return chunks
 
+        time.sleep(5)  # 12 requests per minute to stay under 15 RPM limit
+
+    return chunks
 
 def _comprehension_pass_direct(chunks, model_name, genai):
     import json, re, time
@@ -218,7 +211,6 @@ def _comprehension_pass_direct(chunks, model_name, genai):
         enriched.append(chunk)
         time.sleep(0.4)
     return enriched
-
 
 if __name__ == "__main__":
     main()

@@ -6,8 +6,6 @@ import { Menu, Plus, MessageSquare, LogOut, User, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth, API_URL } from "@/lib/auth"
 
-
-
 interface ChatInfo {
   id: string
   title: string
@@ -66,7 +64,7 @@ export function Sidebar({
           </Button>
         )}
       </div>
-      
+
       <div className="p-4">
         <Button
           onClick={onNewChat}
@@ -80,7 +78,7 @@ export function Sidebar({
       <div className="flex-1 overflow-auto p-4 space-y-6">
         <div>
           <div className="text-[10px] font-bold tracking-widest text-[#b8860b]/50 mb-4 uppercase">Your Journey So Far</div>
-          
+
           <div className="space-y-2">
             {history.length > 0 ? (
               history.map((chat) => (
@@ -101,8 +99,7 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* User Section (Removed for Guest Mode) */}
-
+      {}
 
       <div className="p-3 text-[10px] text-[#b8860b]/30 text-center font-serif italic">
         "Peace resides within."

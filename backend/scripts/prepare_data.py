@@ -6,7 +6,6 @@ import faiss
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Fix path resolution
 base_dir = Path(__file__).parent.parent
 load_dotenv(base_dir / ".env")
 
@@ -22,11 +21,9 @@ metadata_file = data_dir / "gita_metadata.json"
 embeddings_file = data_dir / "embeddings.npy"
 index_file = data_dir / "gita_index.faiss"
 
-# 1. Load metadata
 with open(metadata_file, "r", encoding="utf-8") as f:
     data = json.load(f)
 
-# 2. Generate embeddings
 embs = []
 model_name = os.environ.get("EMBED_MODEL", "models/text-embedding-004")
 
@@ -43,7 +40,6 @@ for chunk in data:
 embs_arr = np.array(embs, dtype="float32")
 np.save(str(embeddings_file), embs_arr)
 
-# 3. Build FAISS index
 dim = embs_arr.shape[1]
 faiss.normalize_L2(embs_arr)
 index = faiss.IndexFlatIP(dim)

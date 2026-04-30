@@ -35,14 +35,14 @@ export function MessageBubble({ message }: { message: Message }) {
         <div className="font-semibold text-sm text-muted-foreground flex items-center gap-2">
           {isUser ? "You" : "Krishna"}
         </div>
-        
+
         <div className="prose prose-neutral dark:prose-invert max-w-none text-[15px] leading-relaxed">
           {message.content.split('\n').map((paragraph, i) => (
             paragraph.trim() ? <p key={i} className="mb-2 last:mb-0">{paragraph}</p> : <br key={i} />
           ))}
         </div>
 
-        {/* Display source citations if any */}
+        {}
         {message.sources && message.sources.length > 0 && (
           <div className="mt-4 pt-2">
             {message.sources.map((source, i) => (

@@ -10,10 +10,6 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────
-# Persistence Logic
-# ─────────────────────────────────────────────────────
-
 def get_or_create_chat(db_session: Session, chat_id: str, user_id: int) -> Chat:
     """Helper to ensure a chat exists in the DB before adding messages."""
     chat = db_session.query(Chat).filter(Chat.id == chat_id).first()
@@ -33,13 +29,10 @@ def get_or_create_chat(db_session: Session, chat_id: str, user_id: int) -> Chat:
 
 def add_message(db_session: Session, chat_id: str, role: str, content: str, user_id: int) -> None:
     """Save a message to the database for a specific chat and user."""
-    # Ensure chat exists
     chat = get_or_create_chat(db_session, chat_id, user_id)
-    
-    # Update last_active timestamp
+
     chat.last_active = datetime.datetime.utcnow()
-    
-    # Create and add message
+
     new_msg = Message(
         chat_id=chat_id,
         role=role,
@@ -58,18 +51,17 @@ def format_history_for_prompt(db_session: Session, chat_id: str, max_messages: i
         .limit(max_messages)
         .all()
     )
-    
-    # Reverse to get chronological order [ oldest -> newest ]
+
     messages.reverse()
-    
+
     if not messages:
         return "No prior conversation."
-        
+
     lines = []
     for msg in messages:
         role_label = "User" if msg.role == "user" else "Krishna (Saarthi)"
         lines.append(f"{role_label}: {msg.content}")
-        
+
     return "\n".join(lines)
 
 def get_chat_history(db_session: Session, chat_id: str):

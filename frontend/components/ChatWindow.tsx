@@ -37,7 +37,6 @@ export function ChatWindow({
 
   const currentLang = languages.find(l => l.id === language) || languages[0]
 
-  // Auto-scroll to bottom
   React.useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -60,7 +59,7 @@ export function ChatWindow({
 
   return (
     <div className="flex flex-col h-full bg-background relative" onClick={() => setIsLangMenuOpen(false)}>
-      {/* Messages Area */}
+      {}
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto w-full pb-64 md:pb-56"
@@ -99,7 +98,7 @@ export function ChatWindow({
         )}
       </div>
 
-      {/* Input Area (Claude style - floating at bottom) */}
+      {}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background to-transparent pt-8 pb-4 md:pt-10 md:pb-6 px-4">
         <div className="max-w-3xl mx-auto relative group">
           <form 
@@ -115,9 +114,9 @@ export function ChatWindow({
               className="min-h-[56px] w-full resize-none border-0 bg-transparent pt-4 pb-2 px-4 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none text-[15px] placeholder:text-muted-foreground/50"
               rows={1}
             />
-            
+
             <div className="flex items-center justify-between px-3 pb-2 pt-1 w-full relative">
-              {/* Custom Language Selector */}
+              {}
               <div className="relative">
                 <button
                   type="button"

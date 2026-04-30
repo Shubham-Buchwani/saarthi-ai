@@ -8,11 +8,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
-# --- Supabase / PostgreSQL Connection ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# If PASSWORD is set separately, build URL safely (handles @, & etc. in password)
 DB_PASSWORD = os.environ.get("DATABASE_PASSWORD")
 DB_HOST = os.environ.get("DATABASE_HOST")
 
@@ -25,7 +22,6 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 if not DATABASE_URL or "[YOUR-PASSWORD]" in DATABASE_URL:
-    # Fallback to local SQLite if Supabase isn't configured
     logger.warning("Supabase DATABASE_URL not fully configured. Falling back to local SQLite.")
     DB_DIR = os.path.join(os.path.dirname(__file__), "data")
     if not os.path.exists(DB_DIR):
@@ -51,10 +47,6 @@ else:
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
-
-# ─────────────────────────────────────────────────────
-# Models
-# ─────────────────────────────────────────────────────
 
 class User(Base):
     __tablename__ = "users"

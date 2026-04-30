@@ -2,12 +2,10 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 import datetime
 
-
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: str
-
 
 class UserResponse(BaseModel):
     username: str
@@ -17,17 +15,14 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 class Token(BaseModel):
     access_token: str
     token_type: str
-
 
 class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = None
     language: Optional[str] = "auto"
-
 
 class ShlokaSource(BaseModel):
     chapter: int
@@ -36,18 +31,15 @@ class ShlokaSource(BaseModel):
     source_file: str
     core_lesson: str
 
-
 class ChatResponse(BaseModel):
     reply: str
     sources: List[ShlokaSource] = []
     session_id: str
 
-
 class FeedbackRequest(BaseModel):
     message_id: str
     helpful: bool
     session_id: str
-
 
 class DailyWisdomResponse(BaseModel):
     chapter: int
@@ -59,9 +51,6 @@ class DailyWisdomResponse(BaseModel):
     everyday_analogy: str
     theme: str
 
-
-# --- Persistence Schemas ---
-
 class MessageInfo(BaseModel):
     id: int
     role: str
@@ -70,7 +59,6 @@ class MessageInfo(BaseModel):
 
     class Config:
         from_attributes = True
-
 
 class ChatInfo(BaseModel):
     id: str

@@ -16,16 +16,7 @@ export default function Home() {
   const [sessionId, setSessionId] = React.useState("")
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false)
 
-  // Auth checking is now disabled to allow Guest access.
-  // React.useEffect(() => {
-  //   if (!loading && !user) {
-  //     router.push("/login")
-  //   }
-  // }, [user, loading, router])
-
-
   React.useEffect(() => {
-    // Generate a unique session ID on mount if not already set
     if (!sessionId) {
       setSessionId(Math.random().toString(36).substring(2, 15))
     }
@@ -34,13 +25,12 @@ export default function Home() {
   const handleNewChat = () => {
     setMessages([])
     setSessionId(Math.random().toString(36).substring(2, 15))
-    setIsSidebarOpen(false) // Close sidebar on mobile after starting new chat
+    setIsSidebarOpen(false)
   }
 
   const handleSendMessage = async (content: string, language: string) => {
     if (!token) return
 
-    // 1. Add user message to UI
     const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -50,7 +40,6 @@ export default function Home() {
     setMessages((prev) => [...prev, userMsg])
     setIsLoading(true)
 
-    // 2. Fetch from backend with Token (Streaming)
     try {
       const response = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
@@ -66,7 +55,6 @@ export default function Home() {
       const reader = response.body?.getReader()
       if (!reader) throw new Error("Could not read response stream")
 
-      // Add an initial empty message for Krishna
       const krishnaMsgId = (Date.now() + 1).toString()
       const initialKrishnaMsg: Message = {
         id: krishnaMsgId,
@@ -84,7 +72,6 @@ export default function Home() {
         if (done) break
 
         const chunk = decoder.decode(value)
-        // SSE can send multiple chunks in one message, each prefixed with 'data: '
         const lines = chunk.split("\n")
         
         for (const line of lines) {
@@ -137,7 +124,7 @@ export default function Home() {
   const handleChatSelect = async (chatId: string) => {
     if (!token) return
     setIsLoading(true)
-    setIsSidebarOpen(false) // Close sidebar on mobile
+    setIsSidebarOpen(false)
     try {
       const res = await fetch(`${API_URL}/api/chats/${chatId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -146,7 +133,6 @@ export default function Home() {
       
       const data = await res.json()
       
-      // Map database messages to UI Message type
       const mappedMessages: Message[] = data.map((m: any) => ({
         id: m.id?.toString() || Math.random().toString(36).substring(7),
         role: m.role,
@@ -179,7 +165,6 @@ export default function Home() {
 
   return (
     <main className="flex h-screen w-full overflow-hidden bg-background font-sans text-foreground relative">
-      {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
@@ -208,17 +193,13 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Desktop Sidebar */}
       <Sidebar 
         onNewChat={handleNewChat} 
         onChatSelect={handleChatSelect}
         className="hidden md:flex" 
       />
 
-
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Mobile Header Toggle */}
         <header className="md:hidden flex h-14 items-center justify-between px-4 border-b border-[#b8860b]/10 bg-background/80 backdrop-blur-md sticky top-0 z-30">
           <button 
             onClick={() => setIsSidebarOpen(true)}
@@ -231,7 +212,7 @@ export default function Home() {
              Saarthi AI
           </div>
           
-          <div className="w-9" /> {/* Spacer */}
+          <div className="w-9" />
         </header>
 
         <ChatWindow 
