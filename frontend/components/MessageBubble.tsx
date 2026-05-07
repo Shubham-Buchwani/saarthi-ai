@@ -33,7 +33,7 @@ export function MessageBubble({ message }: { message: Message }) {
 
       <div className="flex-1 space-y-2 overflow-hidden">
         <div className="font-semibold text-sm text-muted-foreground flex items-center gap-2">
-          {isUser ? "You" : "Krishna"}
+          {isUser ? "You" : "Saarthi"}
         </div>
 
         <div className="prose prose-neutral dark:prose-invert max-w-none text-[15px] leading-relaxed">

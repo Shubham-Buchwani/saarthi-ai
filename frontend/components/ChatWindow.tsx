@@ -71,14 +71,14 @@ export function ChatWindow({
             </div>
             {isLoading ? (
               <>
-                <h2 className="text-2xl font-semibold mb-2">Krishna is reflecting...</h2>
-                <p className="text-muted-foreground max-w-md">Seeking wisdom from the Gita for you...</p>
+                <h2 className="text-2xl font-semibold mb-2">Saarthi is reflecting...</h2>
+                <p className="text-muted-foreground max-w-md">Finding the right path for you...</p>
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-semibold mb-2">How can I guide you today?</h2>
+                <h2 className="text-2xl font-semibold mb-2">How can I help you navigate today?</h2>
                 <p className="text-muted-foreground max-w-md">
-                  Share what's on your mind. I am here to listen and offer perspective from the wisdom of the Gita.
+                  Share what's on your mind. I am here to listen and offer perspective from timeless principles.
                 </p>
               </>
             )}
@@ -91,7 +91,7 @@ export function ChatWindow({
             {isLoading && (
               <div className="p-6 flex items-center gap-3 text-muted-foreground animate-pulse">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Krishna is reflecting...</span>
+                <span className="text-sm">Saarthi is reflecting...</span>
               </div>
             )}
           </div>

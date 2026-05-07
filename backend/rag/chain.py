@@ -13,7 +13,7 @@ from google.ai import generativelanguage as glm
 from groq import Groq, AsyncGroq
 import asyncio
 
-from backend.persona.prompts import KRISHNA_SYSTEM_PROMPT, build_rag_prompt
+from backend.persona.prompts import SAARTHI_SYSTEM_PROMPT, build_rag_prompt
 from backend.rag.retriever import retrieve
 from backend.memory.session import format_history_for_prompt
 
@@ -53,7 +53,7 @@ class SaarthiChain:
 
         self.model = genai.GenerativeModel(
             model_name=self.llm_model,
-            system_instruction=KRISHNA_SYSTEM_PROMPT,
+            system_instruction=SAARTHI_SYSTEM_PROMPT,
             generation_config=self.generation_config,
         )
 
@@ -109,7 +109,7 @@ class SaarthiChain:
         
         if self.llm_provider == "groq" and self.async_groq_client:
             groq_messages = [
-                {"role": "system", "content": KRISHNA_SYSTEM_PROMPT},
+                {"role": "system", "content": SAARTHI_SYSTEM_PROMPT},
             ]
             for m in messages:
                 role = m["role"]
@@ -167,7 +167,7 @@ class SaarthiChain:
                     continue
                 
                 logger.error(f"Gemini stream failed: {e}")
-                error_fallback = "I feel the path is blocked momentarily, Parth. Please speak to me again."
+                error_fallback = "I feel the path is blocked momentarily, friend. Please speak to me again."
                 yield error_fallback
                 yield {"sources": [], "full_reply": error_fallback}
                 break
@@ -255,7 +255,7 @@ Analogy: {chunk.get('everyday_analogy', '')}
             "core_lesson": chunk.get("core_lesson", ""),
             "everyday_analogy": chunk.get("everyday_analogy", ""),
             "theme": theme,
-            "krishna_message": wisdom_text,
+            "saarthi_message": wisdom_text,
         }
 
 

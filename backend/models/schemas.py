@@ -50,6 +50,7 @@ class DailyWisdomResponse(BaseModel):
     core_lesson: str
     everyday_analogy: str
     theme: str
+    saarthi_message: str
 
 class MessageInfo(BaseModel):
     id: int

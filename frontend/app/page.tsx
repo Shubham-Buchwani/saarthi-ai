@@ -55,14 +55,14 @@ export default function Home() {
       const reader = response.body?.getReader()
       if (!reader) throw new Error("Could not read response stream")
 
-      const krishnaMsgId = (Date.now() + 1).toString()
-      const initialKrishnaMsg: Message = {
-        id: krishnaMsgId,
+      const saarthiMsgId = (Date.now() + 1).toString()
+      const initialSaarthiMsg: Message = {
+        id: saarthiMsgId,
         role: "assistant",
         content: "",
         timestamp: new Date(),
       }
-      setMessages((prev) => [...prev, initialKrishnaMsg])
+      setMessages((prev) => [...prev, initialSaarthiMsg])
 
       const decoder = new TextDecoder()
       let accumulatedContent = ""
@@ -84,13 +84,13 @@ export default function Home() {
             if (data.text) {
               accumulatedContent += data.text
               setMessages((prev) => 
-                prev.map(m => m.id === krishnaMsgId ? { ...m, content: accumulatedContent } : m)
+                prev.map(m => m.id === saarthiMsgId ? { ...m, content: accumulatedContent } : m)
               )
             }
             
             if (data.sources) {
               setMessages((prev) => 
-                prev.map(m => m.id === krishnaMsgId ? { ...m, sources: data.sources } : m)
+                prev.map(m => m.id === saarthiMsgId ? { ...m, sources: data.sources } : m)
               )
             }
 
@@ -112,7 +112,7 @@ export default function Home() {
       const errorMsg: Message = {
         id: (Date.now() + 2).toString(),
         role: "assistant",
-        content: "I am having trouble connecting right now, Parth. Please try sharing that with me again in a moment.",
+        content: "I am having trouble connecting right now, friend. Please try sharing that with me again in a moment.",
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, errorMsg])

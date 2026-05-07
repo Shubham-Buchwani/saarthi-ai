@@ -23,5 +23,5 @@ export interface DailyWisdom {
   core_lesson: string
   everyday_analogy: string
   theme: string
-  krishna_message: string
+  saarthi_message: string
 }

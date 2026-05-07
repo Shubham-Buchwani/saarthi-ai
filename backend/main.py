@@ -6,7 +6,7 @@ import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
-from typing import List
+from typing import List, Any, cast
 
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Saarthi AI",
-    description="Bhagavad Gita-grounded AI mentor.",
+    description="Timeless wisdom AI navigator.",
     version="2.0.0",
     lifespan=lifespan,
 )
@@ -144,8 +144,8 @@ async def chat(
 
     safe_response = get_safe_response(user_message)
     if safe_response:
-        session_mem.add_message(db_session, chat_id, "user", user_message, current_user.id)
-        session_mem.add_message(db_session, chat_id, "assistant", safe_response, current_user.id)
+        session_mem.add_message(db_session, chat_id, "user", user_message, cast(Any, current_user).id)
+        session_mem.add_message(db_session, chat_id, "assistant", safe_response, cast(Any, current_user).id)
 
         async def safe_gen():
             yield f"data: {json.dumps({'text': safe_response})}\n\n"
@@ -164,7 +164,7 @@ async def chat(
                 user_message=user_message,
                 session_id=chat_id,
                 conversation_history=history_str,
-                language=req.language
+                language=req.language or "auto"
             ):
                 if isinstance(chunk, dict):
                     sources = chunk.get("sources", [])
@@ -174,18 +174,18 @@ async def chat(
                     yield f"data: {json.dumps({'text': chunk})}\n\n"
 
             if full_reply:
-                session_mem.add_message(db_session, chat_id, "user", user_message, current_user.id)
-                session_mem.add_message(db_session, chat_id, "assistant", full_reply, current_user.id)
+                session_mem.add_message(db_session, chat_id, "user", user_message, cast(Any, current_user).id)
+                session_mem.add_message(db_session, chat_id, "assistant", str(full_reply), cast(Any, current_user).id)
 
                 session_obj = db_session.query(db.Chat).filter(db.Chat.id == chat_id).first()
-                if session_obj and session_obj.title == "New Conversation":
-                    title = user_message[:40] + ("..." if len(user_message) > 40 else "")
-                    session_obj.title = title
+                if session_obj and getattr(session_obj, 'title', None) == "New Conversation":
+                    new_title = user_message[:40] + ("..." if len(user_message) > 40 else "")
+                    session_obj.title = new_title # type: ignore
                     db_session.commit()
 
         except Exception as e:
             logger.error(f"Streaming error: {e}", exc_info=True)
-            yield f"data: {json.dumps({'error': 'The connection to Krishna was interrupted.'})}\n\n"
+            yield f"data: {json.dumps({'error': 'The connection to Saarthi was interrupted.'})}\n\n"
 
     return StreamingResponse(chat_event_generator(), media_type="text/event-stream")
 
@@ -195,7 +195,7 @@ async def list_chats(
     db_session: Session = Depends(db.get_db)
 ):
     """Retrieve all conversations for the current user."""
-    return session_mem.get_user_chats(db_session, current_user.id)
+    return session_mem.get_user_chats(db_session, cast(Any, current_user).id)
 
 @app.get("/api/chats/{chat_id}", response_model=List[MessageInfo])
 async def get_chat_messages(
